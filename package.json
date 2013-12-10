@@ -5,6 +5,8 @@
   "dependencies": {
     "ogr2ogr": "0.1.2",
     "mkdirp":"0.3.x",
-    "async": "0.2.9"
+    "async": "0.2.9",
+    "underscore":"1.5.x",
+    "node-uuid":"1.4.x"
   }
 }
