@@ -1,0 +1,10 @@
+{
+  "name": "odp-utils",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "ogr2ogr": "0.1.2",
+    "mkdirp":"0.3.x",
+    "async": "0.2.9"
+  }
+}
