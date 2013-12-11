@@ -8,72 +8,84 @@
 var fs = require('fs'),
     path = require('path'),
     mkdirp = require('mkdirp'),
+    JSONStream = require('JSONStream'),
     _ = require('underscore')._,
     uuid = require('node-uuid'),
-    sourceFile = __dirname+'/../tmp/counties.geojson',
-    outputDir = __dirname+'/../output';
-
-
-
-
-fs.readFile(sourceFile, 'utf8', function (err, data) {
-  if (err) {
-    console.log('Error: ' + err);
-    return;
-  }
- 
-  data = JSON.parse(data);
-  
-  var groupings = {};
-  
-  var currentID = data.features[0].properties.ID;
-  var currentPlace = newPlace();
-  var currentGeojsons = [];
-  
-  for(x in data.features) {
-    var feature = data.features[x];
+    argv = require('optimist').argv;
     
-    //if we are finished with this place
-    if(feature.properties.ID != currentID) {
-      currentID = feature.properties.ID;
-      writePlace(currentPlace,currentGeojsons);
-      currentPlace = newPlace();
-      currentGeojsons = [];
-      //process.exit();
-    } else {
-      var from = parseInt(feature.properties.START_DATE.substr(0,4));
-      var to = parseInt(feature.properties.END_DATE.substr(0,4));
-      var name = feature.properties.NAME+', '+feature.properties.STATE_TERR+', United States';
-      
-      if(currentPlace.from == null || currentPlace.from > from) {
-        currentPlace.from = from;
-      }
-      
-      if(currentPlace.to == null || currentPlace.to > to) {
-        currentPlace.to = to;
-      }
-      
-      if(!_.contains(currentPlace.names,name)) {
-        currentPlace.names.push(name);
-      }
-      
-      currentGeojsons.push(feature.geometry);
-      
-      currentPlace.geojson.push({
-        from:from,
-        to:to,
-        id:''+currentGeojsons.length
-      });
-      
-    }
-  } // End for loop
+if(argv._.length !== 2) {
+  console.log('Usage: node ahcbp-counties.js fromfile todir');
+}
+    
+var sourceFile = argv._[0];
+//add dirname of path doesn't start with /
+if(sourceFile.substr(0,1) != '/') {
+  var sourceFile = path.join(process.cwd(),sourceFile);
+}
+
+var outputDir  = argv._[1];
+//add dirname of path doesn't start with /
+if(outputDir.substr(0,1) != '/') {
+  var outputDir = path.join(process.cwd(),outputDir);
+}
+
+
+var jsonPipe = fs.createReadStream(sourceFile);
+
+var parser = JSONStream.parse(['features',true]);
+
+var count = 0;
+var currentID = null;
+var currentPlace = newPlace();
+var currentGeojsons = [];
+
+
+jsonPipe.pipe(parser).on('data', function(data) {
+  var feature = data;
   
-  // Output last place
-  writePlace(currentPlace,currentGeojsons);
+  //take care of first place
+  if(currentID == null) currentID = feature.properties.ID;
+  
+  //if we are finished with this place, write it
+  if(feature.properties.ID != currentID) {    
+    count++;
+    if(count%10 == 0) {
+      console.log('Processed ',count);
+    }
+    currentID = feature.properties.ID;
+    writePlace(currentPlace,currentGeojsons);
+    currentPlace = newPlace();
+    currentGeojsons = [];
+  } else {
+    var startDate = feature.properties.START_DATE;
+    var from = startDate.substr(0,4)+'-'+startDate.substr(5,2)+'-'+startDate.substr(8,2);
+    var endDate = feature.properties.END_DATE
+    var to = endDate.substr(0,4)+'-'+endDate.substr(5,2)+'-'+endDate.substr(8,2);
+    var name = feature.properties.NAME+', '+feature.properties.STATE_TERR+', United States';
+    
+    if(currentPlace.from == null || Date.parse(currentPlace.from) > Date.parse(from)) {
+      currentPlace.from = from;
+    }
+    
+    if(currentPlace.to == null || Date.parse(currentPlace.to) > Date.parse(to)) {
+      currentPlace.to = to;
+    }
+    
+    if(!_.contains(currentPlace.names,name)) {
+      currentPlace.names.unshift(name);
+    }
+    
+    currentGeojsons.push(feature.geometry);
+    
+    currentPlace.geojson.push({
+      from:from,
+      to:to,
+      id:''+currentGeojsons.length
+    });
+    
+  }
   
 });
-
-//aks_aleutianislands [ 1, 2, 3 ]
 
 function writePlace(place, geojsons) {
   
