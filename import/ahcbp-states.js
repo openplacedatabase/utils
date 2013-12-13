@@ -56,35 +56,41 @@ jsonPipe.pipe(parser).on('data', function(data) {
     writePlace(currentPlace,currentGeojsons);
     currentPlace = newPlace();
     currentGeojsons = [];
-  } else {
-    var startDate = feature.properties.START_DATE;
-    var from = startDate.substr(0,4)+'-'+startDate.substr(5,2)+'-'+startDate.substr(8,2);
-    var endDate = feature.properties.END_DATE
-    var to = endDate.substr(0,4)+'-'+endDate.substr(5,2)+'-'+endDate.substr(8,2);
-    var name = feature.properties.NAME+', United States';
-    
-    if(currentPlace.from == null || Date.parse(currentPlace.from) > Date.parse(from)) {
-      currentPlace.from = from;
-    }
-    
-    if(currentPlace.to == null || Date.parse(currentPlace.to) > Date.parse(to)) {
-      currentPlace.to = to;
-    }
-    
-    if(!_.contains(currentPlace.names,name)) {
-      currentPlace.names.unshift(name);
-    }
-    
-    currentGeojsons.push(feature.geometry);
-    
-    currentPlace.geojson.push({
-      from:from,
-      to:to,
-      id:''+currentGeojsons.length
-    });
-    
   }
   
+  var startDate = feature.properties.START_DATE;
+  var from = startDate.substr(0,4)+'-'+startDate.substr(5,2)+'-'+startDate.substr(8,2);
+  var endDate = feature.properties.END_DATE
+  var to = endDate.substr(0,4)+'-'+endDate.substr(5,2)+'-'+endDate.substr(8,2);
+  var name = feature.properties.NAME+', United States';
+  
+  //if to == 2000-12-31, set to 9999-12-31
+  if(to == '2000-12-31') to = '9999-12-31';
+  
+  if(currentPlace.from == null || Date.parse(currentPlace.from) > Date.parse(from)) {
+    currentPlace.from = from;
+  }
+  
+  if(currentPlace.to == null || Date.parse(currentPlace.to) < Date.parse(to)) {
+    currentPlace.to = to;
+  }
+  
+  if(!_.contains(currentPlace.names,name)) {
+    currentPlace.names.unshift(name);
+  }
+  
+  currentGeojsons.push(feature.geometry);
+  
+  currentPlace.geojson.push({
+    from:from,
+    to:to,
+    id:''+currentGeojsons.length
+  });
+     
+}).on('end', function() {
+  //write last place
+  writePlace(currentPlace,currentGeojsons);
+  console.log('Import Complete');
 });
 
 function writePlace(place, geojsons) {
