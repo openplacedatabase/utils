@@ -2,7 +2,7 @@
  * This will create properly formatted data from the Ordnance survey
  * See http://www.ordnancesurvey.co.uk/business-and-government/products/boundary-line.html
  * Make sure to convert the shape files into a geojson file before running this script
- * (Note: you will have to zip the provided shapes dir before running togeojson.js)
+ * ogr2ogr -f GeoJSON -s_srs tmp/os-boundary/county_region.prj -t_srs EPSG:4326 -a_srs EPSG:4326 tmp/uk-counties.geojson tmp/os-boundary/county_region.shp
  */
  
 var fs = require('fs'),

@@ -1,7 +1,9 @@
 var ogr2ogr = require('ogr2ogr'),
     path = require('path'),
     fs = require('fs'),
-    argv = require('optimist').argv;
+    argv = require('optimist')
+           .default('p', 'EPSG:4326')
+           .argv;
 
 if(argv._.length !== 2) {
   console.log('Usage: node togeojson.js fromfile tofile');
@@ -24,6 +26,6 @@ if(toFile.substr(0,1) != '/') {
 
 
 var outPipe = fs.createWriteStream(toFile);
-var st = ogr2ogr(fromFile).timeout(2147483647).stream();
+var st = ogr2ogr(fromFile).project('EPSG:4326', argv.p).timeout(2147483647).stream();
 st.on('error', console.error);
 st.pipe(outPipe);
