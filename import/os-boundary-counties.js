@@ -14,7 +14,7 @@ var fs = require('fs'),
     argv = require('optimist').argv;
     
 if(argv._.length !== 2) {
-  console.log('Usage: node ahcbp-counties.js fromfile todir');
+  console.log('Usage: node import/<script> fromfile todir');
 }
     
 var sourceFile = argv._[0];
@@ -35,61 +35,34 @@ var jsonPipe = fs.createReadStream(sourceFile);
 var parser = JSONStream.parse(['features',true]);
 
 var count = 0;
-var currentID = null;
-var currentPlace = newPlace();
-var currentGeojsons = [];
 
 
 jsonPipe.pipe(parser).on('data', function(data) {
   var feature = data;
   
-  console.log(feature);
-  process.exit();
-  /*
-  //take care of first place
-  if(currentID == null) currentID = feature.properties.ID;
-  
-  //if we are finished with this place, write it
-  if(feature.properties.ID != currentID) {    
-    count++;
-    if(count%10 == 0) {
-      console.log('Processed ',count);
-      console.log(currentPlace);
-    }
-    currentID = feature.properties.ID;
-    console.log(currentPlace);
-    //writePlace(currentPlace,currentGeojsons);
-    currentPlace = newPlace();
-    currentGeojsons = [];
+  count++;
+  if(count%10 == 0) {
+    console.log('Processed ',count);
   }
   
-  var startDate = feature.properties.START_DATE;
-  var from = startDate.substr(0,4)+'-'+startDate.substr(5,2)+'-'+startDate.substr(8,2);
-  var endDate = feature.properties.END_DATE
-  var to = endDate.substr(0,4)+'-'+endDate.substr(5,2)+'-'+endDate.substr(8,2);
-  var name = feature.properties.NAME+', '+feature.properties.STATE_TERR+', United States';
+  var currentPlace = newPlace();
   
-  if(currentPlace.from == null || Date.parse(currentPlace.from) > Date.parse(from)) {
-    currentPlace.from = from;
-  }
-  
-  if(currentPlace.to == null || Date.parse(currentPlace.to) > Date.parse(to)) {
-    currentPlace.to = to;
-  }
-  
-  if(!_.contains(currentPlace.names,name)) {
-    currentPlace.names.unshift(name);
-  }
-  
-  currentGeojsons.push(feature.geometry);
+  currentPlace.from = '2013-09-01';
+  currentPlace.to = '9999-12-31';
+  currentPlace.names = [
+    feature.properties.NAME+', England'
+  ];
   
   currentPlace.geojson.push({
-    from:from,
-    to:to,
-    id:''+currentGeojsons.length
+    from:currentPlace.from,
+    to:currentPlace.to,
+    id:'1'
   });
-    
-  */
+  
+  var currentGeojsons = [feature.geometry];
+  
+  writePlace(currentPlace,currentGeojsons);
+  
 });
 
 function writePlace(place, geojsons) {
