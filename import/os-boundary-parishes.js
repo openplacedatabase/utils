@@ -2,7 +2,7 @@
  * This will create properly formatted data from the Ordnance survey
  * See http://www.ordnancesurvey.co.uk/business-and-government/products/boundary-line.html
  * Make sure to convert the shape files into a geojson file before running this script
- * ogr2ogr -f GeoJSON -s_srs tmp/os-boundary/parish_region.prj -t_srs EPSG:4326 -a_srs EPSG:4326 tmp/uk-parishes.geojson tmp/os-boundary/parish_region.shp
+ * ogr2ogr -f GeoJSON -s_srs EPSG:27700 -t_srs WGS84 -a_srs WGS84 parishes.geojson parish_region.shp
  */
  
 var fs = require('fs'),

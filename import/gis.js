@@ -92,6 +92,10 @@ for(x in files) {
       continue;
     }
     
+    //move each shape to line it up
+    var geojson = shiftShape(feature.geometry,-0.165,0);
+    //var geojson = shiftShape(feature.geometry,-0.10503,0.05614);
+    
     if(countries[feature.properties.NAME]) {
       
       prevFrom = countries[feature.properties.NAME].from;
@@ -105,7 +109,7 @@ for(x in files) {
       
       countries[feature.properties.NAME].from = files[x].date;
       
-      countries[feature.properties.NAME].tmpgeojsons.unshift(feature.geometry);
+      countries[feature.properties.NAME].tmpgeojsons.unshift(geojson);
       
     } else {
       
@@ -120,7 +124,7 @@ for(x in files) {
         id:null
       });
       
-      countries[feature.properties.NAME].tmpgeojsons.unshift(feature.geometry);
+      countries[feature.properties.NAME].tmpgeojsons.unshift(geojson);
       
     }
   } // End looping through features
@@ -180,4 +184,45 @@ function newPlace() {
     user_id:0,
     tmpgeojsons:[]
   };
+}
+
+function shiftShape(geojson, x, y) {
+  if(geojson.type == 'Polygon') {
+    var newgeo = {
+      type:'Polygon',
+      coordinates:[]
+    };
+    for(var i in geojson.coordinates) {
+      newgeo.coordinates.push(shiftCoords(geojson.coordinates[i], x, y));
+    }
+    return newgeo;
+  }
+  if(geojson.type == 'MultiPolygon') {
+    var newgeo = {
+      type:'MultiPolygon',
+      coordinates:[]
+    };
+    for(var i in geojson.coordinates) {
+      var poly1 = [];
+      for(var j in geojson.coordinates[i]) {
+        poly1.push(shiftCoords(geojson.coordinates[i][j], x, y));
+      }
+      newgeo.coordinates.push(poly1);
+    }
+    return newgeo;
+  }
+  
+  console.log('Unknown type');
+  console.log(JSON.stringify(geojson));
+  process.exit();
+  return geojson;
+}
+
+function shiftCoords(coords, x, y) {
+  var newArr = [];
+  
+  for(var i in coords) {
+    newArr.push([(coords[i][0]+x)%180,(coords[i][1]+y)%90]);
+  }
+  return newArr;
 }
