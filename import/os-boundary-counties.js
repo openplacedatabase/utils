@@ -7,14 +7,13 @@
  
 var fs = require('fs'),
     path = require('path'),
-    mkdirp = require('mkdirp'),
     JSONStream = require('JSONStream'),
-    _ = require('underscore')._,
-    uuid = require('node-uuid'),
-    argv = require('optimist').argv;
+    argv = require('optimist').argv,
+    utils = require('./lib/utils.js');
     
 if(argv._.length !== 2) {
-  console.log('Usage: node import/<script> fromfile todir');
+  console.log('Usage: node import/<script> from.geojson to-dir');
+  process.exit();
 }
     
 var sourceFile = argv._[0];
@@ -30,76 +29,24 @@ if(outputDir.substr(0,1) != '/') {
 }
 
 
-var jsonPipe = fs.createReadStream(sourceFile);
-
-var parser = JSONStream.parse(['features',true]);
-
 var count = 0;
 
+var jsonPipe = fs.createReadStream(sourceFile);
+var parser = JSONStream.parse(['features',true]);
 
-jsonPipe.pipe(parser).on('data', function(data) {
-  var feature = data;
+jsonPipe.pipe(parser).on('data', function(feature) {
   
   count++;
   if(count%10 == 0) {
     console.log('Processed ',count);
   }
   
-  var currentPlace = newPlace();
+  var currentPlace = utils.newPlace();
   
-  currentPlace.from = '2013-09-01';
-  currentPlace.to = '9999-12-31';
-  currentPlace.names = [
-    feature.properties.NAME+', England'
-  ];
+  currentPlace.names.push(utils.newName(feature.properties.NAME+', England', '2013-09-01'));
+  currentPlace.geojsons.push(utils.newGeoJSON(feature.geometry, '2013-09-01'));
+  currentPlace.attributions.push('Contains Ordnance Survey data © Crown copyright and database right 2013');
   
-  currentPlace.geojson.push({
-    from:currentPlace.from,
-    to:currentPlace.to,
-    id:'1'
-  });
-  
-  var currentGeojsons = [feature.geometry];
-  
-  writePlace(currentPlace,currentGeojsons);
+  utils.writePlace(outputDir, currentPlace);
   
 });
-
-function writePlace(place, geojsons) {
-  
-  //generate uuid
-  place.id = uuid.v4();
-  
-  
-  
-  //get path and filename
-  var filepath = path.join(outputDir,place.id.substr(0,2),place.id.substr(2,2),place.id.substr(4));
-  
-  //console.log(filepath);
-  
-  //create path
-  if(!fs.existsSync(filepath)) {
-    mkdirp.sync(filepath);
-  }
-  
-  //save file(s)
-  fs.writeFileSync(path.join(filepath,'place.json'),JSON.stringify(place));
-  
-  for(x in geojsons) {
-    fs.writeFileSync(path.join(filepath,(parseInt(x)+1)+'.geojson'),JSON.stringify(geojsons[x]));
-  }
-  
-}
-
-function newPlace() {
-  return {
-    id:null,
-    version:1,
-    names:[],
-    from:null,
-    to:null,
-    geojson:[],
-    last_updated:Date.now(),
-    user_id:0
-  };
-}
