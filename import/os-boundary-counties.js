@@ -45,7 +45,7 @@ jsonPipe.pipe(parser).on('data', function(feature) {
   
   currentPlace.names.push(utils.newName(feature.properties.NAME+', England', '2013-09-01'));
   currentPlace.geojsons.push(utils.newGeoJSON(feature.geometry, '2013-09-01'));
-  currentPlace.attributions.push('Contains Ordnance Survey data © Crown copyright and database right 2013');
+  currentPlace.sources.push('Initially imported using Ordnance Survey data © Crown copyright and database right 2013');
   
   utils.writePlace(outputDir, currentPlace);
   

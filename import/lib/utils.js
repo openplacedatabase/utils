@@ -48,7 +48,7 @@ function newPlace() {
     version:1,
     names:[],
     geojsons:[],
-    attributions:[]
+    sources:[]
   };
 }
 
