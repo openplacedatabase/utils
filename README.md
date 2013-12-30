@@ -20,19 +20,23 @@ Below is the version 1 schema for place.json
 {
   "id":"<UUIDv4>",
   "version":1,
-  "names":["<utf8 fully qualified names (comma separated)>"],
-  "from":"YYYY-MM-DD",
-  "to":"YYYY-MM-DD",
+  "names":[
+    {
+      "from":"YYYY-MM-DD",
+      "to":"YYYY-MM-DD",
+      "name":"<utf8 fully qualified names (comma separated)>"
+    }
+  ],
   "geojsons":[
     {
       "from":"YYYY-MM-DD",
       "to":"YYYY-MM-DD",
-      "id":"<the relative name of the geojson file, sans .geojson>"
+      "id":"<the relative name of the geojson file, sans extension (.geojson)>"
     }
   ]
 }
 ````
-The schema for x.geojson is detailed [here](http://geojson.org/geojson-spec.html)
+The schema for x.geojson is detailed [here](http://geojson.org/geojson-spec.html). Geometry Objects only.
 
 The folder structure for OPD is as follows
 ````
