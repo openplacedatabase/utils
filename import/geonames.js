@@ -226,7 +226,9 @@ function processPlaces(processCallback, results) {
       currentPlace.names.push(utils.newName(place.extended_name));
       
       for(var x in place.alternate_names) {
-        currentPlace.names.push(utils.newName(place.alternate_names[x]));
+        if(place.alternate_names[x] != place.extended_name) {
+          currentPlace.names.push(utils.newName(place.alternate_names[x]));
+        }
       }
       
       currentPlace.geojsons.push(utils.newGeoJSON(
