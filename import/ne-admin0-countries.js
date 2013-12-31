@@ -43,9 +43,28 @@ jsonPipe.pipe(parser).on('data', function(feature) {
   
   var currentPlace = utils.newPlace();
   
-  var name = feature.properties.NAME;
+  var names = []
   
-  currentPlace.names.push(utils.newName(name));
+  if(feature.properties.NAME_LONG && names.indexOf(feature.properties.NAME_LONG) < 0) {
+    names.push(feature.properties.NAME_LONG);
+  }
+  
+  if(feature.properties.FORMAL_EN && names.indexOf(feature.properties.FORMAL_EN) < 0) {
+    names.push(feature.properties.FORMAL_EN);
+  }
+  
+  if(feature.properties.FORMAL_FR && names.indexOf(feature.properties.FORMAL_FR) < 0) {
+    names.push(feature.properties.FORMAL_FR);
+  }
+  
+  if(names.length == 0) {
+    return;
+  }
+  
+  for(var x in names) {
+    currentPlace.names.push(utils.newName(names[x]));
+  }
+  
   currentPlace.geojsons.push(utils.newGeoJSON(feature.geometry));
   currentPlace.sources.push('Initially imported from Natural Earth.');
   
