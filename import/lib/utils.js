@@ -37,10 +37,7 @@ function writePlace(outputDir, place) {
 }
 
 /**
- * Create a name object
- * name - a fully qualified UTF-8 String
- * from(opt) - the from date in YYYY-MM-DD format. Defaults to today
- * to(opt) - the to date in YYYY-MM-DD format. Defaults to 9999-12-31
+ * Create a new place object
  */
 function newPlace() {
   return {
@@ -48,7 +45,9 @@ function newPlace() {
     version:1,
     names:[],
     geojsons:[],
-    sources:[]
+    sources:[],
+    last_edited_by:"System - Initial Import",
+    last_edited_time:Date.now()
   };
 }
 

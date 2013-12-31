@@ -34,7 +34,9 @@ Below is the version 1 schema for place.json
       "id":"<the relative name of the geojson file, sans extension (.geojson)>"
     }
   ],
-  "sources":["A UTF-8 string. This is reserved for source information, especially when importing."]
+  "sources":["A UTF-8 string. This is reserved for source information, especially when importing."],
+  "last_edited_time":123456789,
+  "last_edited_by":0
 }
 ````
 The schema for x.geojson is detailed [here](http://geojson.org/geojson-spec.html). Geometry Objects only.
