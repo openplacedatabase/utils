@@ -1,8 +1,6 @@
 /**
- * This will create properly formatted data from the Natural Earth Populated Places file
- * See http://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/
- * Make sure to convert the shape files into a geojson file before running this script
- * ogr2ogr -f GeoJSON -s_srs WGS84 -t_srs WGS84 -a_srs WGS84 places.geojson ne_10m_populated_places.shp
+ * This will create properly formatted data from geonames countries files
+ * See http://download.geonames.org/export/dump/
  */
  
 var fs = require('fs'),
@@ -229,6 +227,24 @@ function processPlaces(processCallback, results) {
         if(place.alternate_names[x] != place.extended_name) {
           currentPlace.names.push(utils.newName(place.alternate_names[x]));
         }
+      }
+      
+      var placesToAdd = []
+      
+      for(var x in currentPlace.names) {
+        if(currentPlace.names[x].name.indexOf('England') !== -1) {
+          var idx = currentPlace.names[x].name.indexOf(', United Kingdom');
+          if(idx !== -1) {
+            placesToAdd.push({
+              from: currentPlace.names[x].from,
+              to: currentPlace.names[x].to,
+              name: currentPlace.names[x].name.substr(0,idx)
+            });
+          }
+        }
+      }
+      for(var x in placesToAdd) {
+        currentPlace.names.push(placesToAdd[x]);
       }
       
       currentPlace.geojsons.push(utils.newGeoJSON(
