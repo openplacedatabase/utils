@@ -1,52 +1,86 @@
 # opd-utils
 
-Basic utility scripts for managing OPD data.
+Basic libraries, scripts, and other useful things when dealing with OPD data.
 
 # Install
-````
-npm install opd-utils --save
-
-````
-
-OR
-
 ````
 git clone https://github.com/openplacedatabase/utils.git
 ````
 
-# Using as a library
+# Included Libraries
+There are several helper libraries in the `lib/` directory
 
+## Place Creation
 ````javascript
-var opdUtils = require('opd-utils');
+var lib = require('<path-to-lib-dir>/create.js'),
+    opdClient = require('opd-sdk').createClient(options);
 
+var place = lib.newPlace();
+
+place.addName('name1').addGeoJSON(geojsonObj).addSource('my source');
+
+console.log(place.toString());
+
+place.save(opdClient);
+
+place.getPlace();
+
+place.getGeojson('geojsonid');
 ````
 
-
-## Validation
-
-## Place creation utilities
-
 ### newPlace()
+Creates a new chainable place representation
 
-## Place updating utility
+### addName(name, [from], [to])
+Adds a name to the place object. Throws an error if name is invalid.
+**Params**
+`name` must be a fully qualified, comma separated, UTF-8 place string.
+`from` must be a valid date or null (Default '-9999-01-01' if not set or null).
+`to` must be a valid date or null (Default '9999-12-31' if not set or null).
 
+### addGeoJSON(geojson, [from], [to])
+Adds a geojson to the place object. Throws an error if geojson is invalid.
+**Params**
+`geojson` must be a valid geojson object.
+`from` must be a valid date or null (Default '-9999-01-01' if not set or null).
+`to` must be a valid date or null (Default '9999-12-31' if not set or null).
 
-### updatePlace
+### addSource(source)
+Adds a source to the place object. Throws an error if name is invalid.
+**Params**
+`source` must be a UTF-8 string describing where this data came from.
+`from` must be a valid date or null (Default '-9999-01-01' if not set or null).
+`to` must be a valid date or null (Default '9999-12-31' if not set or null).
+
+### save(opdClient)
+Saves the place and geojsons using the passed in opdclient (using opdclient.saveMulti()).
+**Params**
+`opdClient` must be an instance of `opd-sdk` createClient().
+
+### getPlace()
+Returns the actual place object.
+
+### getGeoJSON(id)
+Returns the actual geojson object identified by `id`. 
+`id` is auto-assigned when adding a geojson object to the place.
+**Params**
+`id` a valid geojson id. Will return null if there is no geojson by that id.
+
+## Place Updating
+
+`// Coming soon.`
 
 # Scripts
 Feel free to take these and modify them to import data into OPD.
 
 ## Import
+Located in `scripts/import/`, these scripts transform a variety of external data sources into OPD places.
 
 ## Update
+Located in `scripts/update/`, these scripts are handy tools we've written to perform updates on the OPD data.
 
 ## Snapshot
-This command will bundle up all of your data into a snapshot file that can be consumed by the `utils/import.js` script
-
-````shell
-snapshot.js
-````
-
+Located at `scripts/snapshot.js`, this command will bundle up all of your data into a snapshot file that can be consumed by the `utils/import.js` script.
 
 # Misc
 Here are a few things that are useful.
