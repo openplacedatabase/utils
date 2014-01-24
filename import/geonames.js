@@ -19,7 +19,11 @@ var fs = require('fs'),
     csv = require('csv'),
     async = require('async'),
     placeLib = require(path.join(__dirname,'..','lib','create.js')),
+    opdSDK = require('opd-sdk'),
     argv = require('optimist')
+      .demand(['u', 'p'])
+      .default('host','http://localhost:8080')
+      .default('c',10)
       .default('places','allCountries.txt')
       .default('admin1','admin1CodesASCII.txt')
       .default('admin2','admin2Codes.txt')
@@ -39,8 +43,34 @@ if(sourceDir.substr(0,1) != '/') {
   var sourceDir = path.join(process.cwd(),sourceDir);
 }
 
+// Create the opdclient
+var opdClient = opdSDK.createClient({
+      host:argv.host,
+      username: argv.u,
+      password: argv.p
+    });
 
+// Setup the saving queue
+var totalSaved = 0;
+var queue = async.queue(function(place, callback) {
 
+  place.save(opdClient, function(response) {
+    for(var x in response) {
+      if(response[x].error) console.log(response[x].error);
+    }
+    callback();
+
+    if(totalSaved % 1000 === 0) {
+      console.log('Processed %d places', index);
+    }
+  });
+
+  totalSaved++;
+}, argv.c);
+
+queue.drain = function() {
+  console.log('Done Saving '+totalPlaces+' places');
+};
 
 // Ok, process geonames now
 var totalPlaces = 0;
@@ -229,8 +259,6 @@ function processPlaces(processCallback, results) {
       // Add the extended name
       currentPlace.addName(place.extended_name);
 
-      console.log(place.extended_name);
-
       // Add alternate names      
       for(var x in place.alternate_names) {
         if(place.alternate_names[x] != place.extended_name) {
@@ -267,10 +295,8 @@ function processPlaces(processCallback, results) {
 
       totalPlaces++;
 
-      //console.log(currentPlace.getPlace());
-      //process.exit();
-
-      // TODO save place
+      // Save place
+      queue.push(currentPlace);
       
     })
     .on('error', function(error){
