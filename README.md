@@ -35,22 +35,20 @@ Creates a new chainable place representation
 Adds a name to the place object. Throws an error if name is invalid.
 **Params**
 `name` must be a fully qualified, comma separated, UTF-8 place string.
-`from` must be a valid date or null (Default '-9999-01-01' if not set or null).
+`from` must be a valid date or null (Default today if not set or null).
 `to` must be a valid date or null (Default '9999-12-31' if not set or null).
 
 ### addGeoJSON(geojson, [from], [to])
 Adds a geojson to the place object. Throws an error if geojson is invalid.
 **Params**
 `geojson` must be a valid geojson object.
-`from` must be a valid date or null (Default '-9999-01-01' if not set or null).
+`from` must be a valid date or null (Default today if not set or null).
 `to` must be a valid date or null (Default '9999-12-31' if not set or null).
 
 ### addSource(source)
 Adds a source to the place object. Throws an error if name is invalid.
 **Params**
 `source` must be a UTF-8 string describing where this data came from.
-`from` must be a valid date or null (Default '-9999-01-01' if not set or null).
-`to` must be a valid date or null (Default '9999-12-31' if not set or null).
 
 ### save(opdClient)
 Saves the place and geojsons using the passed in opdclient (using opdclient.saveMulti()).
