@@ -61,7 +61,7 @@ var queue = async.queue(function(place, callback) {
     callback();
 
     if(totalSaved % 1000 === 0) {
-      console.log('Processed %d places', index);
+      console.log('Processed %d places', totalSaved);
     }
   });
 
