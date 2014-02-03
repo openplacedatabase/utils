@@ -98,36 +98,13 @@ jsonPipe.pipe(parser).on('data', function(feature) {
 
   // Create a new place
   var currentPlace = placeLib.newPlace();
-
-  console.log(feature.properties.NAME+' County, '+mapping[feature.properties.HCS_CODE]);
-
-  // TODO match existing counties and enhance if need be
-
-  /*
-  // Add the extended name
-  names.push(feature.properties.NAME_LONG);
-  
-  if(feature.properties.NAME_LONG && names.indexOf(feature.properties.NAME_LONG) < 0) {
-    names.push(feature.properties.NAME_LONG);
-  }
-  
-  if(feature.properties.FORMAL_EN && names.indexOf(feature.properties.FORMAL_EN) < 0) {
-    names.push(feature.properties.FORMAL_EN);
-  }
-  
-  if(feature.properties.FORMAL_FR && names.indexOf(feature.properties.FORMAL_FR) < 0) {
-    names.push(feature.properties.FORMAL_FR);
-  }
- 
-  for(var x in names) {
-    currentPlace.addName(names[x]);
-  }
-  
-  currentPlace.addGeoJSON(feature.geometry);
-  currentPlace.addSource('Initially imported from Natural Earth.');
+  currentPlace.addName(feature.properties.NAME+' County, '+mapping[feature.properties.HCS_CODE],null,'1974-03-31');
+  currentPlace.addGeoJSON(feature.geometry,null,'1974-03-31');
+  currentPlace.addSource('Initially imported from Historic County Borders Project at www.county-borders.co.uk/.');
   
   console.log(currentPlace._place);
-  */
+
+  // TODO match existing counties and enhance if need be
   //place.save(opdClient, function(response) {
   //  console.log(response);
   //});
