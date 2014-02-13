@@ -15,11 +15,11 @@
  
 var fs = require('fs'),
     path = require('path'),
-    JSONStream = require('JSONStream'),
     csv = require('csv'),
     async = require('async'),
     placeLib = require(path.join(__dirname,'..','lib','create.js')),
     opdSDK = require('opd-sdk'),
+    _ = require('underscore'),
     argv = require('optimist')
       .demand(['u', 'p'])
       .default('host','http://localhost:8080')
@@ -45,32 +45,10 @@ if(sourceDir.substr(0,1) != '/') {
 
 // Create the opdclient
 var opdClient = opdSDK.createClient({
-      host:argv.host,
+      host: argv.host,
       username: argv.u,
       password: argv.p
     });
-
-// Setup the saving queue
-var totalSaved = 0;
-var queue = async.queue(function(place, callback) {
-
-  place.save(opdClient, function(response) {
-    for(var x in response) {
-      if(response[x].error) console.log(response[x].error);
-    }
-    callback();
-
-    if(totalSaved % 1000 === 0) {
-      console.log('Processed %d places', totalSaved);
-    }
-  });
-
-  totalSaved++;
-}, argv.c);
-
-queue.drain = function() {
-  console.log('Done Saving '+totalPlaces+' places');
-};
 
 // Ok, process geonames now
 var totalPlaces = 0;
@@ -194,7 +172,27 @@ function processPlaces(processCallback, results) {
         'elevation', 'dem', 'timezone', 'modified_date'
       ],
       featureClasses = ['P'];
+      
+  // Setup the saving queue
+  var totalSaved = 0;
+  var queue = async.queue(function(place, callback) {
+    place.save(opdClient, function(response) {
+      for(var x in response) {
+        if(response[x].error) console.log(response[x].error);
+      }
+      callback();
+      if(totalSaved % 1000 === 0) {
+        console.log('Processed %d places', totalSaved);
+      }
+    });
+    totalSaved++;   
+  }, argv.c);
   
+  queue.drain = function() {
+    //console.log('Done Saving '+totalPlaces+' places');
+    //console.log('resuming stream');
+    csvStream.resume();
+  };  
   
   csvStream = csv().from.path(path.join(sourceDir,argv.places), { delimiter: '\t', escape: '\\', quote: '' })
     .on('record', function(row, index){
@@ -218,11 +216,13 @@ function processPlaces(processCallback, results) {
       }
 
       // Process alternate names
+      /*
       var alternate_names = [];
       if(place.alternate_names) {
         alternate_names = place.alternate_names.split(',');
       }
       place.alternate_names = alternate_names;
+      */
       
       //
       // Calculate the place's administrative heirarchy
@@ -259,12 +259,14 @@ function processPlaces(processCallback, results) {
       // Add the extended name
       currentPlace.addName(place.extended_name);
 
+      /*
       // Add alternate names      
       for(var x in place.alternate_names) {
         if(place.alternate_names[x] != place.extended_name) {
           currentPlace.addName(place.alternate_names[x]);
         }
       }
+      */
       
       // Hack for england
       if(place.country_code == 'GB') {
@@ -296,6 +298,7 @@ function processPlaces(processCallback, results) {
       totalPlaces++;
 
       // Save place
+      csvStream.pause();
       queue.push(currentPlace);
       
     })
