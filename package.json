@@ -16,6 +16,6 @@
     "JSONStream": "0.7.x",
     "csv": "0.3.6",
     "opd-sdk": "0.2.4",
-    "highland": "~1.4.0"
+    "highland": "1.5.0"
   }
 }
