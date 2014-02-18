@@ -12,9 +12,12 @@ var _ = require('highland'),
     argv = require('optimist')
       .demand('source')
       .describe('source', 'source directory for year geojson files')
+      .demand('dest')
+      .describe('dest', 'destination directory for saving temp OPD files')
       .argv;
       
-var sourceDir = argv.source;
+var sourceDir = argv.source,
+    destDir = argv.dest;
 
 // Read all files in the directory
 _(function(push, next){
@@ -31,92 +34,94 @@ _(function(push, next){
 })
 
 // Only keep files that end on .geojson
-.filter(function(n){
-  return n.indexOf('.geojson') !== -1;
+.filter(function(filename){
+  return filename.indexOf('.geojson') !== -1;
 })
 
-// Parse files with JSONStream
-.consume(function(error, filename, outerPush, outerNext){
-  if(filename === _.nil){
-    outerPush(null, _.nil);
-    outerNext();
-  } else {
-    console.log('processing %s', filename);
-    getFeatures(filename)
-      .consume(function(error, feature, innerPush, innerNext){
-        if(feature === _.nil){
-          innerPush(null, _.nil);
-          innerNext();
-          outerPush(null, filename);
-          outerNext();
-        } else {
-          innerPush(null, feature);
-          innerNext();
-        }
-      })
-      .each(function(feature){
-        //console.log(feature.properties.GISJOIN);
-      });
-  }
-})
+// Extract features
+.flatMap(getFeatures)
 
-.each(function(filename){
-  //console.log('Done with %s', filename);
-});
-
-
-/*
-.each(function(filename){
-  getFeatures(filename)
-    .pull(function(feature){
-      console.log(feature.properties.GISJOIN);
-      process.exit();
-    });
-});
-*/
-
-/*
-.consume(function(error, filename, push, next){
-  if(filename === _.nil){
-    push(null, _.nil);
-    next();
-  } else {
-    console.log('processing %s', filename);
-    var year = filename.split('_')[2].split('.')[0];
-    fs.createReadStream(path.join(sourceDir, filename))
-      .pipe(jsonStream.parse(['features',true]))
-      .on('data', function(feature){
-        feature.properties.year = year;
-        console.log('pushing feature');
-        push(null, feature);
-        next();
-      })
-      .on('end', function(){
-        console.log('done parsing source file %s', filename);
-        next();
-      });
-  }
-})
-*/
-
-// Create place.jsons and associated .geojsons
-// GISJOIN feature property is the key
-/*
+// Save features
 .consume(function(error, feature, push, next){
-  console.log(feature);
-  process.exit();
+  
+  // We're done saving all features
+  if(feature === _.nil){
+    push(null, _.nil);  
+  }
+  
+  // Save a feature
+  else {
+    
+    var filename = path.join(destDir, feature.properties.GISJOIN + '.json'),
+        year = feature.properties.year,
+        geometry = feature.geometry,
+        obj, geonum;
+        
+    fs.readFile(filename, function(error, data){
+      // File doesn't exist
+      if(error){
+        geonum = 1;
+        obj = {
+          names: {},
+          geojsons: {},
+          sources: ["Minnesota Population Center. National Historical Geographic Information System: Version 2.0. Minneapolis, MN: University of Minnesota 2011."]
+        };
+      } 
+      
+      // File already exists
+      else {
+        obj = JSON.parse(data);
+        geonum = Object.keys(obj.geojsons).length + 1;
+      }
+       
+      // Update the object
+      obj.names[year] = getName(feature);
+      obj.geojsons[year] = geonum;
+      
+      // Save the .json
+      saveObject(filename, obj, function(error){
+        if(error){
+          push(error);
+          next();
+        } else {
+          
+          // Save the .geojson
+          var geoFilename = path.join(destDir, feature.properties.GISJOIN + '.' + geonum + '.geojson');
+          saveObject(geoFilename, geometry, function(error){
+            if(error){
+              push(error);
+            }
+            next();
+          });
+        }
+      });
+    }); 
+  }
+
 })
-*/
-/*
-.pull(function(feature){
-  console.log(feature);
-  process.exit();
-});
-*/
 
 // Iterate over resulting place.jsons and .geojsons and send to OPD
+.consume(function(error, x, push, next){
+  
+  // We're done saving features so let's send all of
+  // the resulting OPD files to the server
+  if(x === _.nil){
+    console.log('TODO: send files to server');
+  } 
+  
+  // We shouldn't get here
+  else {
+    push(new Error('OPD -> server consume: we should not get a non nil object'));
+    next();
+  }
+})
 
+// Thunk
+.resume();
 
+/**
+ * Given a filename, extract and stream all features
+ */
 function getFeatures(filename){
   
   var year = filename.split('_')[2].split('.')[0],
@@ -145,55 +150,23 @@ function getFeatures(filename){
 };
 
 /**
- * This only ever sent one data event
- *
-
-function getFeatures(filename){
-
-  console.log('processing %s', filename);
-  
-  var year = filename.split('_')[2].split('.')[0],
-      queue = [],
-      finished = false,
-      
-      featureStream = fs.createReadStream(path.join(sourceDir, filename))
-        .pipe(jsonStream.parse(['features',true]))
-        .on('data', function(feature){
-          feature.properties.year = year;
-          console.log('collecting feature %s', feature.properties.GISJOIN);
-          queue.push(feature);
-          featureStream.pause();
-        })
-        .on('end', function(){
-          console.log('done parsing source file %s', filename);
-          finished = true;
-        });
-        
-  setTimeout(function(){
-    //featureStream.pause();
-  }, 1000);
-  
-  return _(function(push, next){    
-    console.log('calling generator');
-    if(queue.length){
-      console.log('queue length %d', queue.length);
-    }
-    var callNext = queue.length ? true : false;
-    for(var i = 0; i < queue.length; i++){
-      push(null, queue[i]);
-    }
-    queue = [];
-    if(finished){
-      push(null, _.nil);
-      next();
-    } else {
-      console.log('resume stream');
-      featureStream.resume();
-      if(callNext) {
-        console.log('calling next');
-        next();
-      }
-    }
-  });
+ * Given a feature, extract the proper name
+ * by mapping the year to a schema
+ */
+function getName(feature){
+  var props = feature.properties,
+      year = props.year,
+      name;
+  switch(year){
+    default:
+      name = year + ' - ' + props.GISJOIN;
+  }
+  return name;
 };
-*/
+
+/**
+ * Stringify and save the JSON object
+ */
+function saveObject(filename, obj, cb){
+  fs.writeFile(filename, JSON.stringify(obj), cb);
+};
