@@ -98,8 +98,12 @@ jsonPipe.pipe(parser).on('data', function(feature) {
 
   // Create a new place
   var currentPlace = placeLib.newPlace();
+  
+  // These two lines will create invalid dates where the from is > the to
+  // because the from will be today's date while the to is 1974
   currentPlace.addName(feature.properties.NAME+' County, '+mapping[feature.properties.HCS_CODE],null,'1974-03-31');
   currentPlace.addGeoJSON(feature.geometry,null,'1974-03-31');
+  
   currentPlace.addSource('Initially imported from Historic County Borders Project at www.county-borders.co.uk/.');
   
   console.log(currentPlace._place);

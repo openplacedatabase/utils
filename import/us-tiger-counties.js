@@ -161,7 +161,8 @@ function savePlaces(autoCallback){
   // Get a list of all .json files in the dest directory
   dir.readFiles(destDir, { match: /\.json$/ }, function(error, content, filename, next){
     
-    var place = JSON.parse(content);
+    var fileId = filename.split('.')[0],
+        place = JSON.parse(content);
     
     // Set the version
     place.version = 1;
@@ -197,6 +198,8 @@ function savePlaces(autoCallback){
     // Calculate the geojson year spans
     //
     
+    var geoIds = [];
+    
     // Sort the geojsons by year
     place.geojsons.sort(function(a,b){
       return a.year - b.year;
@@ -206,6 +209,7 @@ function savePlaces(autoCallback){
     for(var i = 0; i < place.geojsons.length - 1; i++){
       var currentGeo = place.geojsons[i],
           nextGeo = place.geojsons[i + 1];
+      geoIds.push(currentGeo.id);
       currentGeo.from = currentGeo.year + '-01-01';
       currentGeo.to = (nextGeo.year - 1) + '-12-31';
       delete currentGeo.year;
@@ -213,9 +217,25 @@ function savePlaces(autoCallback){
     
     // Handle the last geojson; it's a special case
     var lastGeo = place.geojsons[place.geojsons.length - 1];
+    geoIds.push(lastGeo.id);
     lastGeo.from = lastGeo.year + '-01-01';
     lastGeo.to = lastGeo.year + '-12-31';
     delete lastGeo.year;
+    
+    // Merge matching geojson
+    // We have to load them all in memory to compare
+    var geos = [];
+    async.eachSeries(geoIds, function(geoId, eachCallback){
+      fs.readFile(fileId + '.' + geoId + '.geojson', function(error, data){
+        if(error) {
+          eachCallback(error);
+        } else {
+          
+        }
+      });
+    }, function(error){
+    
+    });
     
     // Send the place to the server
     
