@@ -10,11 +10,12 @@ var async = require('async'),
     dir = require('node-dir'),
     jsonStream = require('JSONStream'),
     path = require('path'),
-    uuid = require('node-uuid'),
+    opdSDK = require('opd-sdk'),
+    placeLib = require(path.join(__dirname,'..','lib','create.js')),
     argv = require('optimist')
-      .demand('source')
+      .demand(['u', 'p', 'source', 'dest'])
+      .default('host','http://localhost:8080')
       .describe('source', 'source directory for year geojson files')
-      .demand('dest')
       .describe('dest', 'destination directory for saving temp OPD files')
       .describe('fc', 'concurrency of saving features to disk')
       .default('fc', 5)
@@ -26,6 +27,12 @@ var sourceDir = argv.source,
     destDir = argv.dest,
     fileConcurrency = argv.fc,
     apiConcurrency = argv.ac;
+    
+var opdClient = opdSDK.createClient({
+  host: argv.host,
+  username: argv.u,
+  password: argv.p
+});
       
 async.auto({
 
@@ -114,8 +121,7 @@ function saveFeature(feature, queueCallback){
       geonum = 1;
       obj = {
         names: [],
-        geojsons: [],
-        sources: ["Minnesota Population Center. National Historical Geographic Information System: Version 2.0. Minneapolis, MN: University of Minnesota 2011."]
+        geojsons: []
       };
     } 
     
@@ -158,88 +164,156 @@ function saveFeature(feature, queueCallback){
  * Send all resulting place and geojson files to the OPD API
  */
 function savePlaces(autoCallback){
+
   // Get a list of all .json files in the dest directory
-  dir.readFiles(destDir, { match: /\.json$/ }, function(error, content, filename, next){
+  dir.readFiles(destDir, { 
+    match: /\.json$/,
+    shortName: true
+  }, function(error, content, placeFilename, next){
     
-    var fileId = filename.split('.')[0],
-        place = JSON.parse(content);
+    if(error){
+      console.error('Could not open file', error);
+      next();
+    }
     
-    // Set the version
-    place.version = 1;
+    var fileId = placeFilename.split('.')[0],
+        placeData = JSON.parse(content),
+        place = placeLib.newPlace();
     
-    // Generate a UUID
-    place.id = uuid.v4();
+    // Add the NHGIS citation
+    place.addSource("Minnesota Population Center. National Historical Geographic Information System: Version 2.0. Minneapolis, MN: University of Minnesota 2011.");
     
     //
     // Calculate the name year spans
     //
     
     // Sort the names by year
-    place.names.sort(function(a,b){
+    placeData.names.sort(function(a,b){
       return a.year - b.year;
     });
     
-    // Process all but the last one
-    for(var i = 0; i < place.names.length - 1; i++){
-      var currentName = place.names[i],
-          nextName = place.names[i + 1];
-      currentName.from = currentName.year + '-01-01';
-      currentName.to = (nextName.year - 1) + '-12-31';
-      delete currentName.year;
+    var newNames = [], lastYear;
+    for(var i = 0; i < placeData.names.length - 1; i++){
+      
+      var newName = placeData.names[i];
+      newName.from = newName.year + '-01-01';
+      
+      // If this is the first name, just save it
+      if(newNames.length === 0){
+        newNames.push(newName);
+      } else {
+        
+        // If this does not match the previous name
+        // update the previous name's year and
+        // save the new one
+        var prevName = newNames[newNames.length-1];
+        if(prevName.name !== newName.name){
+          prevName.to = (prevName.year - 1) + '-12-31';
+          newNames.push(newName);
+        }
+      }
+      
+      lastYear = newName.year;
+    }
+
+    // Handle the last name because it's a special case
+    var lastName = newNames[newNames.length - 1];
+    lastName.to = lastYear + '-12-31';
+    
+    // Add the names to the place object
+    for(var i = 0; i < newNames.length; i++){
+      var name = newNames[i];
+      place.addName(name.name, name.from, name.to);
     }
     
-    // Handle the last name; it's a special case
-    var lastName = place.names[place.names.length - 1];
-    lastName.from = lastName.year + '-01-01';
-    lastName.to = lastName.year + '-12-31';
-    delete lastName.year;
-    
     //
-    // Calculate the geojson year spans
+    // Process geojsons
+    // Calculate year spans and merge matching shapes
     //
-    
-    var geoIds = [];
     
     // Sort the geojsons by year
-    place.geojsons.sort(function(a,b){
+    placeData.geojsons.sort(function(a,b){
       return a.year - b.year;
     });
     
-    // Process all but the last one
-    for(var i = 0; i < place.geojsons.length - 1; i++){
-      var currentGeo = place.geojsons[i],
-          nextGeo = place.geojsons[i + 1];
-      geoIds.push(currentGeo.id);
-      currentGeo.from = currentGeo.year + '-01-01';
-      currentGeo.to = (nextGeo.year - 1) + '-12-31';
-      delete currentGeo.year;
-    }
-    
-    // Handle the last geojson; it's a special case
-    var lastGeo = place.geojsons[place.geojsons.length - 1];
-    geoIds.push(lastGeo.id);
-    lastGeo.from = lastGeo.year + '-01-01';
-    lastGeo.to = lastGeo.year + '-12-31';
-    delete lastGeo.year;
-    
-    // Merge matching geojson
-    // We have to load them all in memory to compare
-    var geos = [];
-    async.eachSeries(geoIds, function(geoId, eachCallback){
-      fs.readFile(fileId + '.' + geoId + '.geojson', function(error, data){
-        if(error) {
-          eachCallback(error);
-        } else {
-          
+    var newGeos = [], lastYear;
+    async.eachSeries(placeData.geojsons, function(newGeo, eachCallback){
+      
+      // Load the file
+      var geoFile = path.join(destDir, fileId + '.' + newGeo.id + '.geojson');
+      fs.readFile(geoFile, function(error, geoBuffer){
+        
+        var geoString = geoBuffer.toString();
+        
+        if(error){
+          return eachCallback(error);
         }
+        
+        // Set the from date of the geo
+        newGeo.from = newGeo.year + '-01-01';
+        newGeo.string = geoString;
+      
+        // If it's the first geo, just save it
+        if(newGeos.length === 0){
+          newGeos.push(newGeo);
+        }
+        
+        // If it's not the first, compare shape to previous shape
+        else {
+          var prevGeo = newGeos[newGeos.length-1];
+          
+          // If the shapes are different, add the new one
+          // If they're the same, just skip the new one
+          if(prevGeo.string !== geoString){
+            prevGeo.to = (newGeo.year - 1) + '-12-31';
+            newGeos.push(newGeo);
+          }  
+        }
+        
+        // This is used to update the .to of the last geo
+        // when we're done processing all of the geos. This
+        // allows us to dynamically determine when our data
+        // ends, as well as handle the case where the last
+        // geo is skipped/merged because it matches the geo
+        // before it.
+        lastYear = newGeo.year
+        
+        eachCallback();
       });
-    }, function(error){
+    }, 
     
+    // Done opening and processing all .geojson files
+    function(error){
+      
+      // Error opening a .geojson file
+      if(error){
+        console.error('Error opening geojson files for %s', placeFilename, error);
+        next();
+      } 
+
+      else {
+        
+        // Update the .to of the last geo
+        var lastGeo = newGeos[newGeos.length-1];
+        lastGeo.to = lastYear + '-12-31';
+        
+        // Add the geojsons to the place (parse geojson string)
+        for(var i = 0; i < newGeos.length; i++){
+          var geo = newGeos[i];
+          place.addGeoJSON(JSON.parse(geo.string), geo.from, geo.to);
+        }
+        
+        // Save place
+        place.save(opdClient, function(response){
+          for(var id in response){
+            if(response[id].error){
+              console.error(response[id].error);
+            }
+          }
+          next();
+        });
+      }
     });
-    
-    // Send the place to the server
-    
-    // Send the geojsons to the server
     
   }, function(error, files){
     autoCallback(error);

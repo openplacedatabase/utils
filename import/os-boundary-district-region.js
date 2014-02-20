@@ -28,7 +28,7 @@ if(sourceFile.substr(0,1) != '/') {
 
 // Create the opdclient
 var opdClient = opdSDK.createClient({
-      host:argv.host,
+      host: argv.host,
       username: argv.u,
       password: argv.p
     });
