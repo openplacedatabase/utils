@@ -208,7 +208,7 @@ function getName(feature){
       break;
   }
   if(county && state){
-    return county.replace(nameFixRegex, '').replace(spaceFixRegex).trim() + ', ' + state + ', United States';
+    return county.replace(nameFixRegex, '').replace(spaceFixRegex, ' ').trim() + ', ' + state + ', United States';
   } else {
     return;
   }

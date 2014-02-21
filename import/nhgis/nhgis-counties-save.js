@@ -2,6 +2,8 @@ var async = require('async'),
     fs = require('fs'),
     dir = require('node-dir'),
     path = require('path'),
+    jsts = require('jsts'),
+    area = require('geojson-area').geometry,
     opdSDK = require('opd-sdk'),
     placeLib = require(path.join(__dirname,'..','..','lib','create.js')),
     argv = require('optimist')
@@ -107,7 +109,7 @@ dir.readFiles(sourceDir, {
       
       // Set the from date of the geo
       newGeo.from = newGeo.year + '-01-01';
-      newGeo.string = geoString;
+      newGeo.geometry = JSON.parse(geoString);
     
       // If it's the first geo, just save it
       if(newGeos.length === 0){
@@ -116,11 +118,13 @@ dir.readFiles(sourceDir, {
       
       // If it's not the first, compare shape to previous shape
       else {
-        var prevGeo = newGeos[newGeos.length-1];
+        var prevGeo = newGeos[newGeos.length-1],
+            similarity = calcSimilarity(newGeo.geometry, prevGeo.geometry);
         
         // If the shapes are different, add the new one
         // If they're the same, just skip the new one
-        if(prevGeo.string !== geoString){
+        if(similarity < .9999){
+          console.log('sim', similarity);
           prevGeo.to = (newGeo.year - 1) + '-12-31';
           newGeos.push(newGeo);
         }  
@@ -156,7 +160,7 @@ dir.readFiles(sourceDir, {
       // Add the geojsons to the place (parse geojson string)
       for(var i = 0; i < newGeos.length; i++){
         var geo = newGeos[i];
-        place.addGeoJSON(JSON.parse(geo.string), geo.from, geo.to);
+        place.addGeoJSON(geo.geometry, geo.from, geo.to);
       }
       
       // Save place
@@ -181,3 +185,44 @@ dir.readFiles(sourceDir, {
   }
   console.log('Finished sending files to the API');
 });
+
+/**
+ * Calculate similarity of two polygons by doing diff and
+ * returning the percentage that the diff is of the original
+ */
+function calcSimilarity(poly1, poly2){
+  
+  var a1 = area(poly1),
+      a2 = area(poly2);
+      
+  if(a1 === null || !a2) {
+    return Number.MAX_VALUE;
+  } else {
+    return a1 / a2;
+  }
+  /*
+  try {
+    // Calculate the difference
+    var reader = new jsts.io.GeoJSONReader()
+    var a = reader.read(JSON.stringify(poly1))
+    var b = reader.read(JSON.stringify(poly2))
+    var diff = a.difference(b);
+    var parser = new jsts.io.GeoJSONParser()
+    diff = parser.write(diff)
+
+    var aDiff = area.geometry(diff),
+        aOrig = area.geometry(poly1);
+    
+    // Area returns null for invalid inputs
+    // Avoid divide by 0 errors
+    if(aDiff === null || !aOrig) {
+      return Number.MAX_VALUE;
+    } else {
+      return aDiff / aOrig;
+    }
+  } catch(e) {
+    console.error(e);
+    return Number.MAX_VALUE;
+  }
+  */
+}
