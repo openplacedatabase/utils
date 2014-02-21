@@ -11,8 +11,7 @@ var async = require('async'),
     jsonStream = require('JSONStream'),
     path = require('path'),
     argv = require('optimist')
-      .demand(['u', 'p', 'source', 'dest'])
-      .default('host','http://localhost:8080')
+      .demand(['source', 'dest'])
       .describe('source', 'source directory for year geojson files')
       .describe('dest', 'destination directory for saving temp OPD files')
       .describe('fc', 'concurrency of saving features to disk')
@@ -21,13 +20,9 @@ var async = require('async'),
 
 var sourceDir = argv.source,
     destDir = argv.dest,
-    fileConcurrency = argv.fc;
-    
-var opdClient = opdSDK.createClient({
-  host: argv.host,
-  username: argv.u,
-  password: argv.p
-});
+    fileConcurrency = argv.fc,
+    nameFixRegex = /\(new\)|\(no data\)|\(old\)|\(no population\)/i,
+    spaceFixRegex = / +/;
       
 async.auto({
 
@@ -213,7 +208,7 @@ function getName(feature){
       break;
   }
   if(county && state){
-    return county + ', ' + state + ', United States';
+    return county.replace(nameFixRegex, '').replace(spaceFixRegex).trim() + ', ' + state + ', United States';
   } else {
     return;
   }
