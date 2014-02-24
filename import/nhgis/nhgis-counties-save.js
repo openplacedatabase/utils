@@ -124,7 +124,6 @@ dir.readFiles(sourceDir, {
         // If the shapes are different, add the new one
         // If they're the same, just skip the new one
         if(similarity < .9999){
-          console.log('sim', similarity);
           prevGeo.to = (newGeo.year - 1) + '-12-31';
           newGeos.push(newGeo);
         }  
