@@ -1,8 +1,5 @@
 /**
- * Download county GIS files from https://data2.nhgis.org/main.
- * 1. Select the "County (by State)" Geographic level in the upper left filters.
- * 2. Use the "GIS boundary files" tab below to browse through and select files by year (use the latest TIGER/Line basis available).
- * 3. Unzip and convert to geojson with bin/nhgis-extract-county-geojson.sh
+ * Extract counties into intermediary OPD files
  */
  
 var async = require('async'),
