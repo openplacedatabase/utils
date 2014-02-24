@@ -2,7 +2,6 @@ var async = require('async'),
     fs = require('fs'),
     dir = require('node-dir'),
     path = require('path'),
-    jsts = require('jsts'),
     area = require('geojson-area').geometry,
     opdSDK = require('opd-sdk'),
     placeLib = require(path.join(__dirname,'..','..','lib','create.js')),
@@ -19,6 +18,8 @@ var sourceDir = argv.source,
       username: argv.u,
       password: argv.p
     });
+    
+console.log('Starting', Date.now());
 
 // Get a list of all .json files in the dest directory
 dir.readFiles(sourceDir, { 
@@ -162,19 +163,7 @@ dir.readFiles(sourceDir, {
         place.addGeoJSON(geo.geometry, geo.from, geo.to);
       }
       
-      // Save place
-      place.save(opdClient, function(response){
-        for(var id in response){
-          if(response[id].error){
-            console.error(response[id].error);
-          }
-        }
-        saved++;
-        if(saved % 100 == 0){
-          console.log('Saved %d', saved);
-        }
-        next();
-      });
+      savePlace(place, fileId, next);      
     }
   });
   
@@ -183,7 +172,42 @@ dir.readFiles(sourceDir, {
     console.error('Error reading .json place files', error);
   }
   console.log('Finished sending files to the API');
+  console.log(Date.now());
 });
+
+/**
+ * Save a place; enable retries
+ */
+function savePlace(place, nhgisId, callback, retries){
+  if(typeof retries == 'undefined'){
+    retries = 3;
+  }
+  place.save(opdClient, function(response){
+    var errors = false;
+    for(var id in response){
+      if(response[id].error){
+        console.error('Error saving %s', id, response[id].error);
+        errors = true;
+      }
+    }
+    if(errors) {
+      console.log('failed to save %s', nhgisId);
+      if(retries) {
+        console.log('retrying');
+        savePlace(place, nhgisId, callback, --retries);
+      } else {
+        console.log('no more retries');
+        callback();
+      }
+    } else {
+      saved++;
+      if(saved % 100 == 0){
+        console.log('Saved %d', saved);
+      }
+      callback();
+    }
+  });
+};
 
 /**
  * Calculate similarity of two polygons by doing diff and
