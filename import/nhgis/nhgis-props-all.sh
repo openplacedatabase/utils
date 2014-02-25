@@ -6,11 +6,11 @@
 
 # Make sure a valid directory was given as the first and second argument
 [[ -d $1 ]] || { 
-  echo "First argument must be a valid directory; '$1' given"; 
+  echo >&2 "First argument must be a valid directory; '$1' given"; 
   exit 1; 
 }
 [[ -d $2 ]] || { 
-  echo "Second argument must be a valid directory; '$2' given"; 
+  echo >&2 "Second argument must be a valid directory; '$2' given"; 
   exit 1; 
 }
 

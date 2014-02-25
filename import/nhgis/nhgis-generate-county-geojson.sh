@@ -6,7 +6,7 @@
 
 # Make sure a valid file was given as the first argument
 [[ -e $1 ]] || { 
-  echo "First argument must be a valid file; '$1' given"; 
+  echo >&2 "First argument must be a valid file; '$1' given"; 
   exit 1; 
 }
 
@@ -17,7 +17,7 @@ zipname="${zipname%.*}"
 
 # Make sure the file is a .zip
 [[ $extension = "zip" ]] || {
-  echo "File must be a .zip";
+  echo >&2 "File must be a .zip";
   exit 1;
 }
 
