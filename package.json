@@ -17,6 +17,7 @@
     "csv": "0.3.6",
     "opd-sdk": "0.2.4",
     "node-dir": "0.1.5",
-    "geojson-area": "0.1.0"
+    "geojson-area": "0.1.0",
+    "turf": "0.0.119"
   }
 }

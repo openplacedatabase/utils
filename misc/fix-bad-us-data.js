@@ -26,18 +26,23 @@ async.each(ids, function(id, eachCallback){
     
     // Delete polys of length 4 with small area
     var changes = false;
-    _.each(geojson.coordinates, function(polygon){
-      _.filter(polygon, function(ring){
-        if(ring.length > 4){
-          return true;
+    var newCoordinates = [];
+    for(var i = 0; i < geojson.coordinates.length; i++){
+      var newPolygon = [];
+      for(var j = 0; j < geojson.coordinates[i].length; j++){
+        if(geojson.coordinates[i][j].length > 4){
+          newPolygon.push(geojson.coordinates[i][j]);
         } else {
           changes = true;
-          return false;
         }
-      });
-    });
+      }
+      if(newPolygon.length > 0){
+        newCoordinates.push(newPolygon);
+      }
+    }
     
     if(changes){
+      geojson.coordinates = newCoordinates;
       client.save(id, geojson, function(error){
         if(error){
           console.error('Unable to save %s', id, error);
