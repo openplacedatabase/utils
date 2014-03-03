@@ -1,10 +1,13 @@
 var turf = require('turf'),
     async = require('async'),
-    opdSDK = require('opd-sdk');
+    opdSDK = require('opd-sdk'),
+    argv = require('optimist')
+      .demand(['u','p'])
+      .argv;
 
 var client = opdSDK.createClient({
-  username: 'justin',
-  password: '4uRZFAn&Kjy7F*6M'
+  username: argv.u,
+  password: argv.p
 });
 
 console.log(Date.now());

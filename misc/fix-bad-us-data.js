@@ -2,12 +2,15 @@ var fs = require('fs'),
     async = require('async'),
     _ = require('underscore')._,
     area = require('geojson-area').geometry,
-    opdSDK = require('opd-sdk');
+    opdSDK = require('opd-sdk'),
+    argv = require('optimist')
+      .demand(['u','p'])
+      .argv;
     
 var client = opdSDK.createClient({
-  username: 'justin',
-  password: '4uRZFAn&Kjy7F*6M'
-});    
+  username: argv.u,
+  password: argv.p
+}); 
 
 var ids = JSON.parse(fs.readFileSync(require('path').join(__dirname, 'bad-us-ids.json')));
 
