@@ -24,6 +24,8 @@ var client = opdSDK.createClient({
   password: argv.p
 });
 
+console.log('start', Date.now());
+
 async.auto({
   get_place: getPlace,
   merge_geojsons: ['get_place', mergeGeoJSONs],
